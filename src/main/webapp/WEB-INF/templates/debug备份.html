@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>逐步调试</title>
+
+  <!-- Add Bootstrap 5 stylesheet link -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <!-- Optional: Add Bootstrap icons (if needed) -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap-icons.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+<div class="container mt-5">
+  <div class="container mt-5">
+    <a href="./" class="btn btn-primary mb-3">返回首页</a>
+  </div>
+
+  <div class="container mt-5">
+    <h1 class="accordion-header text-center">逐步调试</h1>
+    <div class="mb-4">
+      <form action="./debug" method="post" class="p-4 border rounded bg-white">
+        <h3 class="mb-4">当前时间为：<span th:text="${currentTime}"></span></h3>
+
+        <div class="mb-3">
+          <label for="timeSlice" class="form-label">时间片长度(非时间片轮转则为运行时长)</label>
+          <input type="number" name="timeSlice" id="timeSlice" th:value="${timeSlice}" class="form-control" required>
+        </div>
+        <div class="mb-3 form-check">
+          <input type="checkbox" name="isRR" id="isRR" th:checked="${isRR}" class="form-check-input" readonly>
+          <label class="form-check-label" for="isRR">是否为时间片轮转</label>
+          <script>
+            // 获取 checkbox 元素
+            let checkbox = document.getElementById("isRR");
+            // 保存 checkbox 的初始状态
+            let checked = checkbox.checked;
+            // 获取时间片长度元素
+            let timeSlice = document.getElementById("timeSlice");
+            // 根据 checkbox 的初始状态设置时间片长度元素的只读属性
+            timeSlice.readOnly = checked;
+            // 为 checkbox 添加 onclick 事件
+            checkbox.onclick = function () {
+              // 恢复 checkbox 的初始状态
+              checkbox.checked = checked;
+            };
+
+          </script>
+        </div>
+        <div class="mb-3">
+          <label for="algorithm" class="form-label">请选择调度算法</label>
+          <select name="algorithm" id="algorithm" class="form-select" required>
+            <option value="FCFS" th:selected="${algorithm == 'FCFS'}">先来先服务</option>
+            <option value="SJF" th:selected="${algorithm == 'SJF'}">短作业优先</option>
+            <option value="Priority" th:selected="${algorithm == 'Priority'}">指定优先级调度</option>
+            <option value="SRT" th:selected="${algorithm == 'SRT'}">最短剩余时间优先</option>
+            <option value="HRRN" th:selected="${algorithm == 'HRRN'}">最高响应比优先</option>
+          </select>
+        </div>
+        <div>
+          <button type="submit" class="btn btn-primary">执行调度</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="mt-4">
+      <h1 class="accordion-header text-center">此时的队列</h1>
+      <div class="row">
+        <div class="col-md-6">
+          <div class="accordion" id="accordionRunning">
+            <div class="accordion-item">
+              <h2 class="accordion-header" id="headingRunning">
+                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseRunning"
+                        aria-expanded="true" aria-controls="collapseRunning">
+                  running队列
+                </button>
+              </h2>
+              <div id="collapseRunning" class="accordion-collapse collapse show" aria-labelledby="headingRunning"
+                   data-bs-parent="#accordionRunning">
+                <div class="accordion-body">
+                  <table class="table">
+                    <thead>
+                    <tr>
+                      <th>进程名</th>
+                      <th>到达时间</th>
+                      <th>服务时间</th>
+                      <th>开始时间</th>
+                      <th>运行时间</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="process : ${runningQueue}">
+                      <td th:text="${process.getName()}"></td>
+                      <td th:text="${process.getArrivalTime()}"></td>
+                      <td th:text="${process.getBurstTime()}"></td>
+                      <td th:text="${process.getStartTime()}"></td>
+                      <td th:text="${process.getRemainingTime()}"></td>
+                    </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-6">
+          <div class="accordion" id="accordionReady">
+            <div class="accordion-item">
+              <h2 class="accordion-header" id="headingReady">
+                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseReady"
+                        aria-expanded="true" aria-controls="collapseReady">
+                  ready队列
+                </button>
+              </h2>
+              <div id="collapseReady" class="accordion-collapse collapse show" aria-labelledby="headingReady"
+                   data-bs-parent="#accordionReady">
+                <div class="accordion-body">
+                  <table class="table">
+                    <thead>
+                    <tr>
+                      <th>进程名</th>
+                      <th>到达时间</th>
+                      <th>服务时间</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="process : ${readyQueue}">
+                      <td th:text="${process.getName()}"></td>
+                      <td th:text="${process.getArrivalTime()}"></td>
+                      <td th:text="${process.getBurstTime()}"></td>
+                    </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="mt-4">
+      <h1 class="accordion-header text-center">进程总结</h1>
+      <div class="accordion" id="processSummaryAccordion">
+        <div class="accordion-item">
+          <h2 class="accordion-header" id="processSummaryHeading">
+            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#processSummaryCollapse" aria-expanded="true" aria-controls="processSummaryCollapse">
+              进程总结
+            </button>
+          </h2>
+          <div id="processSummaryCollapse" class="accordion-collapse collapse show" aria-labelledby="processSummaryHeading" data-bs-parent="#processSummaryAccordion">
+            <div class="accordion-body">
+              <table class="table">
+                <thead>
+                <tr>
+                  <th>进程名</th>
+                  <th>到达时间</th>
+                  <th>服务时间</th>
+                  <th>开始时间</th>
+                  <th>完成时间</th>
+                  <th>周转时间</th>
+                  <th>带权周转时间</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="processStat : ${processStats}">
+                  <td th:text="${processStat.processName}"></td>
+                  <td th:text="${processStat.arrivalTime}"></td>
+                  <td th:text="${processStat.burstTime}"></td>
+                  <td th:text="${processStat.startTime}"></td>
+                  <td th:text="${processStat.endTime}"></td>
+                  <td th:text="${processStat.turnAroundTime}"></td>
+                  <td th:text="${#numbers.formatDecimal(processStat.weightedTurnAroundTime, 0, 'DEFAULT', 2, 'DEFAULT')}"></td>
+                </tr>
+                <tr>
+                  <td>平均值</td>
+                  <td>——</td>
+                  <td>——</td>
+                  <td>——</td>
+                  <td>——</td>
+                  <td th:text="${averageTurnAroundTime}"></td>
+                  <td th:text="${averageWeightedTurnAroundTime}"></td>
+                </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="mt-4">
+      <h2 class="mb-4">控制台记录</h2>
+      <div>
+        <h4>运行记录</h4>
+        <div class="mb-3">
+          <textarea th:text="${RunRecords}" readonly class="form-control" style="height: 200px"></textarea>
+        </div>
+        <h4>完成记录</h4>
+        <div>
+          <textarea th:text="${FinishedRecords}" readonly class="form-control" style="height: 200px"></textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Add Bootstrap 5 scripts (popper.js and bootstrap.js) -->
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.min.js"></script>
+
+</body>
+</html>

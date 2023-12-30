@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <title>处理机调度的模拟实现</title>
+  <!-- Add Bootstrap 5 stylesheet link -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <!-- Optional: Add Bootstrap icons (if needed) -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap-icons.css" rel="stylesheet">
+  <style>
+    .container {
+      background-color: rgba(255, 255, 255, 0.8); /* White background */
+      border-radius: 10px; /* Rounded corners */
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); /* Shadow effect */
+      padding: 20px;
+      margin-top: 20px;
+    }
+  </style>
+
+</head>
+<body class="bg-light">
+<div class="container mt-5">
+  <h1 class="display-4 text-center">处理机调度的模拟实现</h1>
+  <div class="row">
+    <div class="col-md-6"> <!-- 左浮动 -->
+      <form action="./addProgram" method="post" class="p-3 border rounded bg-light">
+        <h3 class="mb-4">添加程序</h3>
+        <p>请输入优先级(整数)</p>
+        <input type="number" name="priority" value="0" min=0 max=10 step=1
+               οnkeyup="value=value.replace(/[^\-?\d.]/g,'')"
+               required>
+        <p>请输入程序名</p>
+        <input type="text" name="name" placeholder="请输入程序名" required>
+        <p>请输入运行时间(正整数)</p>
+        <input type="number" name="burstTime" value="0" min=1 max=100 step=1
+               οnkeyup="value=value.replace(/[^\-?\d.]/g,'')" required>
+        <button type="submit">添加</button>
+      </form>
+    </div>
+    <div class="col-md-6"> <!-- 右浮动 -->
+      <form action="./addProcess" method="post" class="p-3 border rounded bg-light">
+        <h3 class="mb-4">添加进程</h3>
+        <p>请输入程序</p>
+        <select name="programIndex" required>
+          <option th:each="program : ${programs}" th:value="${programStat.index}" th:text="${program.name}"></option>
+        </select>
+        <p>请输入到达时间(正整数)</p>
+        <input type="number" name="arrivalTime" value="0" min=0 max=100 step=1
+               οnkeyup="value=value.replace(/[^\-?\d.]/g,'')" required>
+        <button type="submit">添加</button>
+      </form>
+    </div>
+  </div>
+  <hr class="my-4">
+  <h1 class="display-4 text-center">已有的资源</h1>
+  <div class="row">
+    <div class="col-md-6">
+      <div class="accordion" id="accordionPrograms">
+        <div class="accordion-item">
+          <h2 class="accordion-header" id="headingPrograms">
+            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapsePrograms"
+                    aria-expanded="true" aria-controls="collapsePrograms">
+              已有的程序资源
+            </button>
+          </h2>
+          <div id="collapsePrograms" class="accordion-collapse collapse show" aria-labelledby="headingPrograms"
+               data-bs-parent="#accordionPrograms">
+            <div class="accordion-body">
+              <ul class="list-group">
+                <li class="list-group-item">
+                  <div class="d-flex w-100 justify-content-between">
+                    <strong class="mb-1">程序名</strong>
+                    <strong class="mb-1">优先级</strong>
+                    <strong class="mb-1">运行时间</strong>
+                    <strong class="mb-1">是否删除</strong>
+                  </div>
+                </li>
+                <!-- Loop through programs and create list items -->
+                <li class="list-group-item" th:each="program : ${programs}">
+                  <div class="d-flex w-100 justify-content-between">
+                    <span class="mb-1" th:text="${program.name}"></span>
+                    <span class="mb-1" th:text="${program.priority}"></span>
+                    <span class="mb-1" th:text="${program.burstTime}"></span>
+                    <span>
+                      <form action="./deleteProgram" method="post">
+                      <input type="hidden" name="programIndex" th:value="${programStat.index}">
+                      <input type="hidden" name="programId" th:value="${program.id}">
+                      <button type="submit" class="btn btn-danger btn-sm">删除</button>
+                      </form>
+                    </span>
+                  </div>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="accordion" id="accordionProcesses">
+        <div class="accordion-item">
+          <h2 class="accordion-header" id="headingProcesses">
+            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseProcesses"
+                    aria-expanded="true" aria-controls="collapseProcesses">
+              已有的进程资源
+            </button>
+          </h2>
+          <div id="collapseProcesses" class="accordion-collapse collapse show" aria-labelledby="headingProcesses"
+               data-bs-parent="#accordionProcesses">
+            <div class="accordion-body">
+              <ul class="list-group">
+                <li class="list-group-item">
+                  <div class="d-flex w-100 justify-content-between">
+                    <strong class="mb-1">程序名</strong>
+                    <strong class="mb-1">到达时间</strong>
+                    <strong class="mb-1">优先级</strong>
+                    <strong class="mb-1">是否删除</strong>
+                  </div>
+                </li>
+                <!-- Loop through processes and create list items -->
+                <li class="list-group-item" th:each="process : ${processes}">
+                  <div class="d-flex w-100 justify-content-between">
+                    <span class="mb-1" th:text="${process.getName()}"></span>
+                    <span class="mb-1" th:text="${process.arrivalTime}"></span>
+                    <span class="mb-1" th:text="${process.getPriority()}"></span>
+                    <span class="mb-1">
+                      <form action="./deleteProcess" method="post">
+                      <input type="hidden" name="processIndex" th:value="${processStat.index}">
+                      <button type="submit" class="btn btn-danger btn-sm">删除</button>
+                    </form>
+                    </span>
+                  </div>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <hr>
+  <div class="mt-5">
+    <h1 class="display-4 text-center">执行调度</h1>
+    <div class="row justify-content-center">
+      <div class="col-md-6">
+        <form action="./run" method="post" class="p-4 border rounded bg-light">
+          <div class="mb-3">
+            <label for="algorithm" class="form-label lead">请选择调度算法</label>
+            <select name="algorithm" id="algorithm" class="form-select" required>
+              <option value="FCFS" selected>先来先服务</option>
+              <option value="SJF">短作业优先</option>
+              <option value="Priority">指定优先级调度</option>
+              <option value="SRT">最短剩余时间优先</option>
+              <option value="HRRN">最高响应比优先</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" name="isRR" id="isRR" onchange="toggleDiv()">
+              <label class="form-check-label" for="isRR">是否使用时间片轮转</label>
+            </div>
+          </div>
+          <div id="timeSlice" style="display: none;">
+            <div class="mb-3">
+              <label for="timeSliceNumber" class="form-label">请输入时间片大小(正整数)</label>
+              <input type="number" name="timeSlice" id="timeSliceNumber" class="form-control" value="1" min="1"
+                     max="100" step="1" required>
+            </div>
+          </div>
+          <div class="mb-3"> <!-- 是否单步调试 -->
+            <input class="form-check-input" type="checkbox" name="isDebug" id="isDebug">
+            <label class="form-check-label" for="isDebug">是否单步调试</label>
+          </div>
+          <div class="mb-3"> <!--输入运行队列大小-->
+            <label for="queueSize" class="form-label">请输入运行队列大小(正整数,0为进程队列最大长度)</label>
+            <input type="number" name="queueSize" id="queueSize" class="form-control" value="0" min="0" max="100"
+                   step="1" required>
+          </div>
+          <button type="submit" class="btn btn-primary">执行调度</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function toggleDiv() {
+      var checkbox = document.getElementById("isRR");
+      var div = document.getElementById("timeSlice");
+      var timeSliceNumber = document.getElementById("timeSliceNumber");
+
+      if (checkbox.checked) {
+        div.style.display = "block";
+        timeSliceNumber.required = true;
+      } else {
+        div.style.display = "none";
+        timeSliceNumber.required = false;
+      }
+    }
+  </script>
+</div>
+
+<!-- Add Bootstrap 5 scripts (popper.js and bootstrap.js) -->
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.min.js"></script>
+</body>
+</html>
